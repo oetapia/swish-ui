@@ -1,0 +1,450 @@
+@charset "UTF-8";
+
+@font-face {
+  font-family: 'Gantari';
+  src: url('../fonts/font-gantari.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'GantariItalic';
+  src: url('../fonts/font-gantari-italic.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: italic;
+}
+
+:root {
+  --font-gantari: 'Gantari', sans-serif;
+  --font-gantari-italic: 'GantariItalic', sans-serif;
+}
+
+body {
+  background-color: #222223;
+  color: rgb(84.2608695652, 84.2608695652, 86.7391304348);
+  align-items: center;
+  justify-items: center;
+  font-family: var(--font-gantari);
+  letter-spacing: 0.03em;
+  font-kerning: auto;
+  max-width: 100vw;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+body i, body em {
+  font-family: var(--font-gantari-italic);
+}
+body h1, body h2, body h3, body h4 {
+  font-size: 0.9em;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.6em;
+  display: inline-block;
+}
+body .whole {
+  width: 100%;
+}
+body .container {
+  justify-content: center;
+  gap: 0.6em; /* Space between panels */
+  flex-wrap: wrap; /* Allows items to wrap on smaller screens */
+  display: flex;
+}
+body .query-album {
+  list-style-type: none;
+  padding-left: 0.6em;
+  border-left: 1px solid rgba(68, 68, 51, 0.4);
+}
+body .scroll-list {
+  max-height: 70vh;
+  overflow-y: scroll;
+  --scrollbar-color: $highlight;
+  --scrollbar-bg: $dark;
+  scrollbar-color: transparent transparent; /* Firefox */
+  scrollbar-width: thin;
+  /* For WebKit browsers (Chrome, Safari) */
+}
+body .scroll-list::-webkit-scrollbar {
+  width: 8px;
+}
+body .scroll-list::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0); /* Transparent */
+}
+body .scroll-list::-webkit-scrollbar-track {
+  background-color: rgba(0, 0, 0, 0); /* Transparent */
+}
+body .small.panel {
+  max-width: 12em;
+}
+body .small.panel button {
+  margin: 0.3em 0.3em;
+}
+body .large .lyrics {
+  font-size: 175%;
+}
+body .panel {
+  position: relative;
+  max-height: 100vh;
+  overflow: hidden;
+  flex: 1;
+  padding: 0 0.6em;
+  transition: max-width 300ms ease-in-out, padding-right 300ms ease-in-out; /* Smooth transition for width and padding */
+}
+body .panel.closed-panel {
+  max-width: 2em; /* Width when the panel is closed */
+}
+body .panel.closed-panel .contained {
+  display: none; /* Completely hide contained content */
+}
+body .panel.open-panel .contained {
+  display: block; /* Show contained content */
+  opacity: 1; /* Fully visible */
+  visibility: visible; /* Ensures elements are visible */
+  transition: opacity 300ms ease-in-out; /* Smooth transition for opacity */
+}
+body .panel-control {
+  text-align: center;
+}
+body .contained {
+  overflow: hidden;
+  opacity: 0; /* Start hidden */
+  visibility: hidden; /* Prevents interaction when closed */
+  transition: opacity 300ms ease-in-out, visibility 0ms 300ms; /* Delay visibility change until opacity transition ends */
+}
+body .player-panel {
+  text-align: center;
+}
+body .search-box, body .action-buttons, body .volume-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center; /* Centers buttons vertically */
+  gap: 0.3em; /* Optional: Adds spacing between buttons */
+  justify-content: center;
+}
+body .search-box button, body .action-buttons button, body .volume-buttons button {
+  flex: none; /* Ensures buttons don't stretch unevenly */
+}
+body .volume-level {
+  width: 1.6em;
+  position: relative;
+  font-size: 0.7em;
+  padding-top: 0.3em;
+}
+body .volume-level .overlay {
+  top: 0;
+  left: 0;
+}
+body .seek-level {
+  position: relative;
+  font-size: 0.7em;
+  padding-top: 0.3em;
+}
+body .seek-level .overlay {
+  top: 0;
+  left: 0;
+}
+body .progress-container {
+  width: 100%; /* Total width of the progress bar */
+  height: 0.3em; /* Height of the progress bar */
+  background-color: rgba(68, 68, 51, 0.4); /* Background color */
+  border-radius: 5px; /* Rounded corners */
+  position: relative;
+  overflow: hidden; /* Ensures inner fill doesn't overflow */
+}
+body .progress-fill {
+  height: 100%; /* Fill the entire height of the container */
+  background-color: rgba(82.5714285714, 82.5714285714, 61.9285714286, 0.4); /* Fill color */
+  transition: width 0.5s ease-in-out; /* Smooth transition for width changes */
+}
+body .toast {
+  position: absolute;
+  bottom: 0;
+  right: 1em;
+  font-size: 0.75em;
+  color: #222223;
+}
+body .toast .active {
+  border-radius: 2em;
+  background: rgba(188, 188, 187, 0.3);
+  padding: 1em 3em;
+}
+body input {
+  background-color: rgb(31.4869565217, 31.4869565217, 32.4130434783);
+  border: 1px solid rgba(68, 68, 51, 0.4);
+  padding: 0.4em 1em;
+  color: #bcbcbb;
+  margin: 0.3em;
+  min-height: 1.6em;
+  border-radius: 1em;
+}
+body input:focus-visible {
+  outline: 1px solid rgba(126.2857142857, 126.2857142857, 94.7142857143, 0.4);
+  background-color: rgb(39.0260869565, 39.0260869565, 40.1739130435);
+}
+body button {
+  background-color: transparent;
+  padding: 0.3em 0.6em;
+  border-radius: 1em;
+  margin: 0.6em 0.3em;
+  color: inherit;
+  min-height: 3em;
+  min-width: 3em;
+  text-transform: uppercase;
+  border: none;
+  transition: opacity 600ms ease-in-out;
+}
+body button:hover {
+  transition: opacity 600ms ease-in-out;
+  cursor: pointer;
+}
+body button:hover img {
+  opacity: 0.4;
+}
+body button.drag:hover {
+  cursor: grab;
+}
+body button img {
+  opacity: 0.2;
+}
+body .btn-basic {
+  border: rgb(71.6956521739, 71.6956521739, 73.8043478261) 1px solid;
+  font-size: 0.8em;
+}
+body .btn-basic:hover {
+  background-color: rgba(68, 68, 51, 0.2);
+}
+body .overlay {
+  position: absolute;
+  top: 0.3em;
+  left: 0.6em;
+  transition: opacity 300ms ease-in-out;
+}
+body .overlay .action {
+  background-color: rgba(51, 51, 68, 0.2666666667);
+  border-radius: 3em;
+  opacity: 0;
+  transition: opacity 600ms ease-in-out;
+}
+body .overlay .action:hover {
+  opacity: 0.75;
+}
+body .editable-list {
+  padding: 0;
+  margin: 0;
+}
+body .editable-list .list-item {
+  flex: auto;
+  list-style-type: none;
+  display: flex;
+}
+body .editable-list .album-list {
+  flex-grow: 1;
+  overflow: hidden;
+}
+body .album-container {
+  position: relative;
+  text-align: center;
+}
+body .queue-list {
+  padding: 0;
+  margin: 0;
+}
+body .extra .item, body .badge {
+  font-size: 0.6em;
+  text-transform: uppercase;
+  padding: 0.2em 0.4em;
+  margin: 0 0.3em;
+  background-color: rgb(71.6956521739, 71.6956521739, 73.8043478261);
+  color: rgb(21.4347826087, 21.4347826087, 22.0652173913);
+  display: inline-block;
+  border-radius: 0.3em;
+}
+body .toggle {
+  font-size: 0.8em;
+  height: 1em;
+  position: relative;
+  width: 3.6em;
+}
+body .toggle .badge {
+  position: absolute;
+  top: 0.2em;
+  left: 0.1em;
+}
+body .toggle .toggle-icon {
+  top: 1.4em;
+  position: absolute;
+  left: 0.7em;
+}
+body .played {
+  opacity: 0.5;
+}
+body .playing .album-list {
+  border: 1px solid rgba(97.1428571429, 97.1428571429, 72.8571428571, 0.4);
+  background-color: rgb(36.5130434783, 36.5130434783, 37.5869565217);
+}
+body .lyrics {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+body .lyrics li {
+  margin: 0.6em 0;
+}
+body .lyrics li.active {
+  font-weight: 700;
+  font-size: 1.3em;
+  margin: 1em 0;
+  color: #bcbcbb;
+}
+body .samples {
+  font-size: 0.9em;
+  height: 48vh;
+  max-height: 48vh;
+  text-align: left;
+}
+body .album-list {
+  border: 1px solid rgba(68, 68, 51, 0.4);
+  box-shadow: 0.1em 0.1em 0.3em rgba(17, 17, 34, 0.5333333333);
+  display: flex;
+  align-items: center; /* Aligns items vertically in the center */
+  gap: 1em; /* Adds space between image and description */
+  padding: 0.6em; /* Optional: add padding around the card */
+  border-radius: 1em;
+  margin: 0.6em;
+}
+body .album-list.selected {
+  background-color: rgb(41.5391304348, 41.5391304348, 42.7608695652);
+  border: 1px solid rgba(76.7428571429, 76.7428571429, 57.5571428571, 0.4);
+}
+body .album-list:hover {
+  background-color: rgb(31.4869565217, 31.4869565217, 32.4130434783);
+}
+body .album-list p {
+  padding: 0;
+  margin: 0;
+}
+body .album-list .cover {
+  border: 1px solid rgba(68, 68, 51, 0.4);
+  max-width: 4em;
+  border-radius: 0.6em;
+}
+body .album-list .cover.playlist {
+  border-radius: 0.3em;
+}
+body .album-list .cover.albums {
+  border-radius: 0.3em;
+}
+body .album-list .cover.artists {
+  border-radius: 12em;
+  width: 4em; /* Set a fixed width */
+  height: 4em; /* Set a fixed height to keep it square */
+  overflow: hidden;
+}
+body .album-list .cover.search {
+  width: 3em;
+  border-radius: 0.2em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body .album-list .cover {
+  height: auto; /* Keep aspect ratio */
+  -o-object-fit: cover;
+     object-fit: cover; /* Ensures the image doesn’t get distorted */
+}
+body .album-list .meta {
+  flex: 1; /* Allows the description to take up the remaining space */
+}
+body .album-list .meta .secondary {
+  font-size: 0.8em;
+}
+body .album-list .meta .artist {
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+body .album-list .meta .album {
+  font-style: italic;
+}
+body .album-list .meta .title {
+  font-size: 0.8em;
+  color: rgb(137.3777777778, 137.3777777778, 135.6222222222);
+}
+
+.album-art {
+  flex: 1;
+  position: relative;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-basis: auto; /* default auto */
+  align-self: auto;
+  display: inline-block;
+}
+.album-art p {
+  padding: 0 0 0.1em 0;
+  margin: 0;
+}
+.album-art .cover {
+  border: 1px solid rgba(68, 68, 51, 0.4);
+  box-shadow: 1em 1em 1em rgba(17, 17, 34, 0.5333333333);
+  max-width: 90%;
+  border-radius: 1em;
+  margin: 0.6em 0.3em;
+  max-height: 45vh;
+}
+.album-art .meta .secondary {
+  font-size: 0.8em;
+  color: rgb(109.3913043478, 109.3913043478, 112.6086956522);
+}
+.album-art .meta .artist {
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-kerning: auto;
+}
+.album-art .meta .album {
+  font-style: italic;
+}
+.album-art .meta .title {
+  letter-spacing: 0.09em;
+  font-kerning: auto;
+  color: rgb(175.3444444444, 175.3444444444, 174.1555555556);
+}
+.album-art.small {
+  max-width: 12em;
+}
+
+@media (prefers-color-scheme: dark) {
+  html {
+    color-scheme: dark;
+  }
+}
+@media (max-width: 1200px) {
+  body .container {
+    flex-direction: column; /* Stacks items vertically on smaller screens */
+    align-items: center; /* Center-aligns items in vertical layout */
+  }
+  body .contained {
+    padding-right: 0;
+  }
+  body input {
+    font-size: 12pt;
+  }
+  body .panel {
+    max-width: 95%;
+  }
+  body .search-panel {
+    order: 2;
+  }
+  body .queue-panel {
+    order: 3;
+  }
+  body .album-art {
+    text-align: center;
+  }
+  body .album-art .cover.single {
+    max-width: 12em;
+  }
+  html {
+    color-scheme: dark;
+  }
+}/*# sourceMappingURL=app.css.map */

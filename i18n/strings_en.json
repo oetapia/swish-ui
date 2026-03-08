@@ -1,0 +1,25 @@
+{
+  "SWISH": {
+    "PLUGIN_NAME": "Swish",
+    "PLUGIN_CONFIGURATION": "Swish Configuration",
+    "SERVER_CONF": "Server Settings",
+    "PORT": "Port",
+    "PORT_DOC": "Port on which the Swish UI will be served (default: 3007)",
+    "TIDAL_CONF": "Tidal",
+    "TIDAL_CLIENT_ID": "Client ID",
+    "TIDAL_CLIENT_ID_DOC": "Tidal API client ID",
+    "TIDAL_CLIENT_SECRET": "Client Secret",
+    "TIDAL_CLIENT_SECRET_DOC": "Tidal API client secret",
+    "GENIUS_CONF": "Genius",
+    "GENIUS_CLIENT_ID": "Client ID",
+    "GENIUS_CLIENT_ID_DOC": "Genius API client ID (used for token renewal)",
+    "GENIUS_CLIENT_SECRET": "Client Secret",
+    "GENIUS_CLIENT_SECRET_DOC": "Genius API client secret (used for token renewal)",
+    "GENIUS_ACCESS_TOKEN": "Access Token",
+    "GENIUS_ACCESS_TOKEN_DOC": "Genius API access token",
+    "APPLY": "Save",
+    "NO_CHANGES": "No changes made",
+    "INVALID_PORT": "Port must be a number between 1024 and 65535",
+    "GENERIC_FAILED": "Failed to execute: "
+  }
+}

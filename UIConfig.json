@@ -1,0 +1,111 @@
+{
+  "page": {
+    "label": "TRANSLATE.SWISH.PLUGIN_CONFIGURATION"
+  },
+  "sections": [
+    {
+      "id": "server_conf",
+      "element": "section",
+      "label": "TRANSLATE.SWISH.SERVER_CONF",
+      "icon": "fa-server",
+      "onSave": {
+        "type": "controller",
+        "endpoint": "user_interface/swish-ui",
+        "method": "saveConf"
+      },
+      "saveButton": {
+        "label": "TRANSLATE.SWISH.APPLY",
+        "data": ["port"]
+      },
+      "content": [
+        {
+          "id": "port",
+          "element": "input",
+          "type": "number",
+          "label": "TRANSLATE.SWISH.PORT",
+          "doc": "TRANSLATE.SWISH.PORT_DOC",
+          "attributes": [
+            {"placeholder": 3007},
+            {"min": 1024},
+            {"max": 65535}
+          ],
+          "value": 3007
+        }
+      ]
+    },
+    {
+      "id": "tidal_conf",
+      "element": "section",
+      "label": "TRANSLATE.SWISH.TIDAL_CONF",
+      "icon": "fa-music",
+      "onSave": {
+        "type": "controller",
+        "endpoint": "user_interface/swish-ui",
+        "method": "saveTidalConf"
+      },
+      "saveButton": {
+        "label": "TRANSLATE.SWISH.APPLY",
+        "data": ["tidalClientId", "tidalClientSecret"]
+      },
+      "content": [
+        {
+          "id": "tidalClientId",
+          "element": "input",
+          "type": "text",
+          "label": "TRANSLATE.SWISH.TIDAL_CLIENT_ID",
+          "doc": "TRANSLATE.SWISH.TIDAL_CLIENT_ID_DOC",
+          "value": ""
+        },
+        {
+          "id": "tidalClientSecret",
+          "element": "input",
+          "type": "password",
+          "label": "TRANSLATE.SWISH.TIDAL_CLIENT_SECRET",
+          "doc": "TRANSLATE.SWISH.TIDAL_CLIENT_SECRET_DOC",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "genius_conf",
+      "element": "section",
+      "label": "TRANSLATE.SWISH.GENIUS_CONF",
+      "icon": "fa-star",
+      "onSave": {
+        "type": "controller",
+        "endpoint": "user_interface/swish-ui",
+        "method": "saveGeniusConf"
+      },
+      "saveButton": {
+        "label": "TRANSLATE.SWISH.APPLY",
+        "data": ["geniusClientId", "geniusClientSecret", "geniusAccessToken"]
+      },
+      "content": [
+        {
+          "id": "geniusClientId",
+          "element": "input",
+          "type": "text",
+          "label": "TRANSLATE.SWISH.GENIUS_CLIENT_ID",
+          "doc": "TRANSLATE.SWISH.GENIUS_CLIENT_ID_DOC",
+          "value": ""
+        },
+        {
+          "id": "geniusClientSecret",
+          "element": "input",
+          "type": "password",
+          "label": "TRANSLATE.SWISH.GENIUS_CLIENT_SECRET",
+          "doc": "TRANSLATE.SWISH.GENIUS_CLIENT_SECRET_DOC",
+          "value": ""
+        },
+        {
+          "id": "geniusAccessToken",
+          "element": "input",
+          "type": "password",
+          "label": "TRANSLATE.SWISH.GENIUS_ACCESS_TOKEN",
+          "doc": "TRANSLATE.SWISH.GENIUS_ACCESS_TOKEN_DOC",
+          "value": ""
+        }
+      ]
+    }
+  ]
+}

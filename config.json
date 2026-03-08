@@ -1,0 +1,8 @@
+{
+  "port": { "type": "number", "value": 3007 },
+  "tidalClientId": { "type": "string", "value": "" },
+  "tidalClientSecret": { "type": "string", "value": "" },
+  "geniusClientId": { "type": "string", "value": "" },
+  "geniusClientSecret": { "type": "string", "value": "" },
+  "geniusAccessToken": { "type": "string", "value": "" }
+}
