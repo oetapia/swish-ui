@@ -69,9 +69,10 @@ function sanitizeString(s) {
   return s.replace(/\s*\(.*?\)\s*/g, ' ').trim();
 }
 
-function httpsGet(url) {
+function httpsGet(url, headers) {
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    const options = headers ? { headers } : {};
+    https.get(url, options, (res) => {
       let data = '';
       res.on('data', chunk => { data += chunk; });
       res.on('end', () => {
@@ -81,6 +82,17 @@ function httpsGet(url) {
       });
     }).on('error', reject);
   });
+}
+
+function getGeniusToken() {
+  try {
+    const cfg = fs.existsSync(RUNTIME_CONFIG)
+      ? JSON.parse(fs.readFileSync(RUNTIME_CONFIG, 'utf8'))
+      : {};
+    return cfg.geniusAccessToken || '';
+  } catch (e) {
+    return '';
+  }
 }
 
 async function searchWithFallbacks(track, artist, album, duration) {
@@ -118,6 +130,42 @@ app.get('/api/lrclib/search', async (req, res) => {
     return res.status(404).json({ error: 'No lyrics found' });
   } catch (e) {
     return res.status(500).json({ error: e.message });
+  }
+});
+
+
+
+// --- /api/genius/search ---
+app.get('/api/genius/search', async (req, res) => {
+  const { q } = req.query;
+  if (!q) return res.status(400).json({ error: 'q is required' });
+  const token = getGeniusToken();
+  if (!token) return res.status(500).json({ error: 'Genius access token not configured' });
+  try {
+    const json = await httpsGet(
+      `https://api.genius.com/search?q=${encodeURIComponent(q)}`,
+      { Authorization: `Bearer ${token}` }
+    );
+    res.json(json);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// --- /api/genius/songs ---
+app.get('/api/genius/songs', async (req, res) => {
+  const { q } = req.query;
+  if (!q) return res.status(400).json({ error: 'q (song id) is required' });
+  const token = getGeniusToken();
+  if (!token) return res.status(500).json({ error: 'Genius access token not configured' });
+  try {
+    const json = await httpsGet(
+      `https://api.genius.com/songs/${encodeURIComponent(q)}`,
+      { Authorization: `Bearer ${token}` }
+    );
+    res.json(json);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
