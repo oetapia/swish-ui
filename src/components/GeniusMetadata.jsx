@@ -201,6 +201,11 @@ function GeniusMetadata({ setMessage, meta, g_token, localAPI, setSearchTerm }) 
           <div className='genius-refresh'>
             <button onClick={handleRefresh}>Try next match</button>
             <span>{currentHitIndex + 1} / {cachedHits.length}</span>
+            {cachedHits[currentHitIndex] && (
+              <span className='lyrics-hit-info'>
+                {cachedHits[currentHitIndex].result.title} · {cachedHits[currentHitIndex].result.primary_artist.name}
+              </span>
+            )}
           </div>
         )}
 

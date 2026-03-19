@@ -186,9 +186,13 @@ ControllerSwish.prototype.writeServiceFile = function () {
     'WantedBy=multi-user.target',
     ''
   ].join('\n');
-  fs.outputFile(serviceFile, serviceContent, function (err) {
-    if (err) { self.logger.error(id + 'Error writing service file: ' + err); defer.reject(err); }
-    else { self.logger.info(id + 'Service file written.'); defer.resolve(); }
+  const tmpFile = '/tmp/swish.service.tmp';
+  fs.outputFile(tmpFile, serviceContent, function (err) {
+    if (err) { self.logger.error(id + 'Error writing temp service file: ' + err); defer.reject(err); return; }
+    exec('/usr/bin/sudo /bin/cp ' + tmpFile + ' ' + serviceFile, { uid: 1000, gid: 1000 }, function (error) {
+      if (error) { self.logger.error(id + 'Error installing service file: ' + error); defer.reject(error); }
+      else { self.logger.info(id + 'Service file written.'); defer.resolve(); }
+    });
   });
   return defer.promise;
 };

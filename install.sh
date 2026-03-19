@@ -32,6 +32,7 @@ if [ ! -f "${CONF_FILE}" ]; then
   echo "Writing default port config"
   echo "PORT=3007" > "${CONF_FILE}"
 fi
+chown volumio:volumio "${CONF_FILE}"
 
 # Create systemd service
 echo "Creating Swish systemd service"

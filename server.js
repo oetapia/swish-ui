@@ -95,39 +95,44 @@ function getGeniusToken() {
   }
 }
 
-async function searchWithFallbacks(track, artist, album, duration) {
+async function searchAllWithFallbacks(track, artist, album) {
   const attempts = [
-    `track_name=${encodeURIComponent(track)}&artist_name=${encodeURIComponent(artist)}&album_name=${encodeURIComponent(album)}&duration=${duration || ''}`,
-    `track_name=${encodeURIComponent(sanitizeString(track))}&artist_name=${encodeURIComponent(artist)}&album_name=${encodeURIComponent(sanitizeString(album))}&duration=${duration || ''}`,
+    `track_name=${encodeURIComponent(track)}&artist_name=${encodeURIComponent(artist)}&album_name=${encodeURIComponent(album || '')}`,
+    `track_name=${encodeURIComponent(sanitizeString(track))}&artist_name=${encodeURIComponent(artist)}&album_name=${encodeURIComponent(sanitizeString(album || ''))}`,
     `track_name=${encodeURIComponent(track)}&artist_name=${encodeURIComponent(artist)}`,
     `track_name=${encodeURIComponent(sanitizeString(track))}&artist_name=${encodeURIComponent(artist)}`
   ];
   for (const query of attempts) {
-    const result = await httpsGet(`https://lrclib.net/api/get?${query}`);
-    if (result && result.trackName) {
-      if (!result.syncedLyrics) continue;
-      return result;
+    const result = await httpsGet(`https://lrclib.net/api/search?${query}`);
+    if (Array.isArray(result) && result.length > 0) {
+      // Sort: results with syncedLyrics first, then plainLyrics-only
+      return result.sort((a, b) => {
+        const aS = !!a.syncedLyrics, bS = !!b.syncedLyrics;
+        if (aS && !bS) return -1;
+        if (!aS && bS) return 1;
+        return 0;
+      });
     }
-    if (!result || result.error !== 'TrackNotFound') return result;
   }
-  return { error: 'TrackNotFound' };
+  return [];
 }
 
 app.get('/api/lrclib/search', async (req, res) => {
-  const { track_name, artist_name, album_name, duration } = req.query;
+  const { track_name, artist_name, album_name } = req.query;
   if (!track_name || !artist_name) {
     return res.status(400).json({ error: 'track_name and artist_name are required' });
   }
   const cacheKey = `${track_name}-${artist_name}-${album_name || ''}`;
   if (lyricsCache[cacheKey]) return res.json(lyricsCache[cacheKey]);
   try {
-    const json = await searchWithFallbacks(track_name, artist_name, album_name, duration);
-    if (json && json.trackName) {
-      const result = { ...json, parsedLyrics: json.syncedLyrics ? parseLyrics(json.syncedLyrics) : [] };
-      lyricsCache[cacheKey] = result;
-      return res.json(result);
-    }
-    return res.status(404).json({ error: 'No lyrics found' });
+    const hits = await searchAllWithFallbacks(track_name, artist_name, album_name);
+    if (hits.length === 0) return res.status(404).json({ error: 'No lyrics found' });
+    const result = hits.map(hit => ({
+      ...hit,
+      parsedLyrics: hit.syncedLyrics ? parseLyrics(hit.syncedLyrics) : []
+    }));
+    lyricsCache[cacheKey] = result;
+    return res.json(result);
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
