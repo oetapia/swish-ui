@@ -95,6 +95,59 @@ function getGeniusToken() {
   }
 }
 
+function getTidalCredentials() {
+  try {
+    const cfg = fs.existsSync(RUNTIME_CONFIG)
+      ? JSON.parse(fs.readFileSync(RUNTIME_CONFIG, 'utf8'))
+      : {};
+    return { clientId: cfg.tidalClientId || '', clientSecret: cfg.tidalClientSecret || '' };
+  } catch (e) {
+    return { clientId: '', clientSecret: '' };
+  }
+}
+
+// In-memory Tidal token cache
+let tidalTokenCache = null;
+
+function httpsPost(hostname, path, headers, body) {
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname,
+      path,
+      method: 'POST',
+      headers: { ...headers, 'Content-Length': Buffer.byteLength(body) }
+    };
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        if (res.statusCode !== 200) { reject(new Error('Response status: ' + res.statusCode)); return; }
+        try { resolve(JSON.parse(data)); } catch (e) { reject(e); }
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
+async function getTidalToken() {
+  if (tidalTokenCache && tidalTokenCache.expiry > Date.now() + 60000) {
+    return tidalTokenCache.token;
+  }
+  const { clientId, clientSecret } = getTidalCredentials();
+  if (!clientId || !clientSecret) return null;
+  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+  const data = await httpsPost(
+    'auth.tidal.com',
+    '/v1/oauth2/token',
+    { 'Authorization': `Basic ${credentials}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    'grant_type=client_credentials'
+  );
+  tidalTokenCache = { token: data.access_token, expiry: Date.now() + data.expires_in * 1000 };
+  return tidalTokenCache.token;
+}
+
 async function searchAllWithFallbacks(track, artist, album) {
   const attempts = [
     `track_name=${encodeURIComponent(track)}&artist_name=${encodeURIComponent(artist)}&album_name=${encodeURIComponent(album || '')}`,
@@ -166,6 +219,53 @@ app.get('/api/genius/songs', async (req, res) => {
   try {
     const json = await httpsGet(
       `https://api.genius.com/songs/${encodeURIComponent(q)}`,
+      { Authorization: `Bearer ${token}` }
+    );
+    res.json(json);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// --- /api/tidal/similar-tracks ---
+// GET /api/tidal/similar-tracks?trackId=xxx&countryCode=DE
+// Returns the raw Tidal similarTracks relationship response
+app.get('/api/tidal/similar-tracks', async (req, res) => {
+  const { trackId, countryCode = 'DE' } = req.query;
+  if (!trackId) return res.status(400).json({ error: 'trackId is required' });
+  try {
+    const token = await getTidalToken();
+    if (!token) return res.status(500).json({ error: 'Tidal credentials not configured' });
+    const params = new URLSearchParams({ countryCode, include: 'similarTracks' });
+    const json = await httpsGet(
+      `https://openapi.tidal.com/v2/tracks/${encodeURIComponent(trackId)}/relationships/similarTracks?${params}`,
+      { Authorization: `Bearer ${token}` }
+    );
+    res.json(json);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// --- /api/tidal/album-tracks ---
+// GET /api/tidal/album-tracks?trackId=xxx&countryCode=DE
+// Returns the track list for the first album associated with the given track
+app.get('/api/tidal/album-tracks', async (req, res) => {
+  const { trackId, countryCode = 'DE' } = req.query;
+  if (!trackId) return res.status(400).json({ error: 'trackId is required' });
+  try {
+    const token = await getTidalToken();
+    if (!token) return res.status(500).json({ error: 'Tidal credentials not configured' });
+    const albumParams = new URLSearchParams({ countryCode, include: 'albums' });
+    const albumRel = await httpsGet(
+      `https://openapi.tidal.com/v2/tracks/${encodeURIComponent(trackId)}/relationships/albums?${albumParams}`,
+      { Authorization: `Bearer ${token}` }
+    );
+    const albumId = albumRel.data && albumRel.data[0] && albumRel.data[0].id;
+    if (!albumId) return res.status(404).json({ error: 'No album found for track' });
+    const itemParams = new URLSearchParams({ countryCode, include: 'items' });
+    const json = await httpsGet(
+      `https://openapi.tidal.com/v2/albums/${encodeURIComponent(albumId)}/relationships/items?${itemParams}`,
       { Authorization: `Bearer ${token}` }
     );
     res.json(json);

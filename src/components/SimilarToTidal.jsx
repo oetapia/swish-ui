@@ -5,87 +5,33 @@ import { useState,useEffect } from 'react'
 import AddToQueue from './AddToQueue';
 
 
-function SearchTidal({passedId,  token, type, service, setMessage, localhost, current}) {
-	
+function SearchTidal({passedId, type, service, setMessage, localhost}) {
+
 
 const [data, setData] = useState(null)
 const [trackId, setTrackId] = useState(null)
 const [fetchInitiated, setFetchInitiated] = useState(false); // New state to control fetch
 const [queueReady, setQueueReady] = useState(false); // State to trigger queuing process
-const [TIDAL_ACCESS_TOKEN,setToken] = useState(token)
 
-
-var TIDAL_API_BASE_URL = "https://openapi.tidal.com/v2"
-var COUNTRY_CODE = "DE"
 
 // Function to fetch similar tracks
 async function searchSimilarTracks(trackId) {
-
-	var url
-	var params
-
-	if (type==="radio") {
-		
-		 url = `${TIDAL_API_BASE_URL}/tracks/${trackId}/relationships/similarTracks`
-		 params = new URLSearchParams({
-			countryCode: COUNTRY_CODE,
-			include: "similarTracks"
-		});
-	}
-
-	else if (type==="album") {
-		
-		 url = `${TIDAL_API_BASE_URL}/tracks/${trackId}/relationships/albums`;
-		 params = new URLSearchParams({
-			countryCode: COUNTRY_CODE,
-			include: "albums"
-		});
-	}
-
-
-	const headers = {
-		"Authorization": `Bearer ${TIDAL_ACCESS_TOKEN}`
-	};
-
 	try {
-		const response = await fetch(`${url}?${params}`, { headers });
+		var endpoint
+		if (type === "radio") {
+			endpoint = `/api/tidal/similar-tracks?trackId=${encodeURIComponent(trackId)}`;
+		} else if (type === "album") {
+			endpoint = `/api/tidal/album-tracks?trackId=${encodeURIComponent(trackId)}`;
+		}
+
+		const response = await fetch(endpoint);
 
 		if (!response.ok) {
 			throw new Error(`Failed to fetch similar tracks: ${response.status}`);
 		}
 
-		var data
+		const data = await response.json();
 
-		if (type==="radio") {
-		 data = await response.json();
-		}
-
-		if (type === "album") {
-
-			var middata = await response.json();
-			console.log("album", middata)
-			// Fetch tracks for the album
-			const albumId = middata.data[0]?.id;
-			if (albumId) {
-			  const albumUrl = `${TIDAL_API_BASE_URL}/albums/${albumId}/relationships/items`;
-			  const albumParams = new URLSearchParams({
-				countryCode: COUNTRY_CODE,
-				include: "items"
-			  });
-	
-			  const albumResponse = await fetch(`${albumUrl}?${albumParams}`, { headers });
-	
-			  if (!albumResponse.ok) {
-				throw new Error(`Failed to fetch album tracks: ${albumResponse.status}`);
-			  }
-	
-			  data = await albumResponse.json();
-			} else {
-			  console.error("No album data found.");
-			  return;
-			}
-		  }
-		
 		// Extract similar track IDs
 		const trackIds = data.data.map(track => track.id);
 
