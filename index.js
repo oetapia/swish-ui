@@ -33,10 +33,14 @@ ControllerSwish.prototype.onStart = function () {
   const defer = libQ.defer();
 
   self.commandRouter.loadI18nStrings();
-  self.writePortConf(self.config.get('port'))
-    .then(self.writeRuntimeConfig.bind(self))
-    .then(self.writeServiceFile.bind(self))
-    .then(self.systemctl.bind(self, 'daemon-reload'))
+  const serviceExists = require('fs').existsSync(serviceFile);
+  const setup = serviceExists
+    ? self.writePortConf(self.config.get('port')).then(self.writeRuntimeConfig.bind(self))
+    : self.writePortConf(self.config.get('port'))
+        .then(self.writeRuntimeConfig.bind(self))
+        .then(self.writeServiceFile.bind(self))
+        .then(self.systemctl.bind(self, 'daemon-reload'));
+  setup
     .then(self.systemctl.bind(self, 'start swish.service'))
     .then(function () {
       self.logger.info(id + 'Swish UI started on port ' + self.config.get('port'));
