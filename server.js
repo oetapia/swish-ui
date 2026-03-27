@@ -27,7 +27,7 @@ console.error = (...args) => { appendLog('error', args); _error(...args); };
 // Auto-build in the background if dist is missing (e.g. after a plugin update)
 if (!fs.existsSync(path.join(DIST, 'index.html'))) {
   console.log('[swish-ui] dist not found — running npm install && npm run build in background...');
-  exec('npm install && npm run build', { cwd: __dirname, maxBuffer: 10 * 1024 * 1024 }, (err, _stdout, stderr) => {
+  exec('bash -l -c "npm run build"', { cwd: __dirname, maxBuffer: 10 * 1024 * 1024 }, (err, _stdout, stderr) => {
     if (err) {
       console.error('[swish-ui] build failed:', err.message);
       console.error('[swish-ui] stderr:', stderr.slice(-2000));
