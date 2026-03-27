@@ -5,10 +5,22 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const http = require('http');
+const { execSync } = require('child_process');
 
 const PORT = parseInt(process.env.PORT, 10) || 3007;
 const DIST = path.join(__dirname, 'dist');
 const RUNTIME_CONFIG = path.join(__dirname, 'runtime-config.json');
+
+// Auto-build if dist is missing (e.g. after a plugin update)
+if (!fs.existsSync(path.join(DIST, 'index.html'))) {
+  console.log('[swish-ui] dist not found — running npm install && npm run build...');
+  try {
+    execSync('npm install && npm run build', { cwd: __dirname, stdio: 'inherit' });
+    console.log('[swish-ui] build complete.');
+  } catch (e) {
+    console.error('[swish-ui] build failed:', e.message);
+  }
+}
 
 // In-memory lyrics cache
 const lyricsCache = {};
