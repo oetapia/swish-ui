@@ -11,6 +11,19 @@ const PORT = parseInt(process.env.PORT, 10) || 3007;
 const DIST = path.join(__dirname, 'dist');
 const RUNTIME_CONFIG = path.join(__dirname, 'runtime-config.json');
 
+// In-memory log buffer
+const logBuffer = [];
+const MAX_LOG_LINES = 200;
+function appendLog(level, args) {
+  const line = { t: new Date().toISOString(), level, msg: args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ') };
+  logBuffer.push(line);
+  if (logBuffer.length > MAX_LOG_LINES) logBuffer.shift();
+}
+const _log = console.log.bind(console);
+const _error = console.error.bind(console);
+console.log = (...args) => { appendLog('info', args); _log(...args); };
+console.error = (...args) => { appendLog('error', args); _error(...args); };
+
 // Auto-build in the background if dist is missing (e.g. after a plugin update)
 if (!fs.existsSync(path.join(DIST, 'index.html'))) {
   console.log('[swish-ui] dist not found — running npm install && npm run build in background...');
@@ -42,6 +55,11 @@ app.get('/health', (req, res) => {
     nodeVersion: process.version,
     uptime: Math.floor(process.uptime())
   });
+});
+
+// --- /api/logs ---
+app.get('/api/logs', (req, res) => {
+  res.json(logBuffer);
 });
 
 // --- /api/config ---
