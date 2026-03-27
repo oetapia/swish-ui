@@ -32,9 +32,7 @@ if (!fs.existsSync(path.join(DIST, 'index.html'))) {
       console.error('[swish-ui] build failed:', err.message);
       console.error('[swish-ui] stderr:', stderr.slice(-2000));
     } else {
-      const distExists = fs.existsSync(path.join(DIST, 'index.html'));
-      console.log('[swish-ui] build exited 0. dist exists:', distExists);
-      console.log('[swish-ui] stderr:', stderr.slice(-2000));
+      console.log('[swish-ui] build complete — refresh the page.');
     }
   });
 }
