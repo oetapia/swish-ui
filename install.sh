@@ -30,7 +30,7 @@ fi
 # Write default port config
 if [ ! -f "${CONF_FILE}" ]; then
   echo "Writing default port config"
-  echo "PORT=3007" > "${CONF_FILE}"
+  echo "PORT=4000" > "${CONF_FILE}"
 fi
 chown volumio:volumio "${CONF_FILE}"
 
@@ -59,5 +59,7 @@ WantedBy=multi-user.target
 EOF
 
 sudo systemctl daemon-reload
+sudo systemctl enable swish.service
+sudo systemctl start swish.service
 
 echo "plugininstallend"

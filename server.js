@@ -4,6 +4,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
+const http = require('http');
 
 const PORT = parseInt(process.env.PORT, 10) || 3007;
 const DIST = path.join(__dirname, 'dist');
@@ -11,6 +12,12 @@ const RUNTIME_CONFIG = path.join(__dirname, 'runtime-config.json');
 
 // In-memory lyrics cache
 const lyricsCache = {};
+
+// In-memory similar tracks cache: { [trackId]: [id, id, ...] }
+const similarTracksCache = {};
+
+// In-memory album tracks cache: { [trackId]: [id, id, ...] }
+const albumTracksCache = {};
 
 const app = express();
 app.use(express.json());
@@ -229,7 +236,7 @@ app.get('/api/genius/songs', async (req, res) => {
 
 // --- /api/tidal/similar-tracks ---
 // GET /api/tidal/similar-tracks?trackId=xxx&countryCode=DE
-// Returns the raw Tidal similarTracks relationship response
+// Returns the raw Tidal similarTracks relationship response and caches track IDs
 app.get('/api/tidal/similar-tracks', async (req, res) => {
   const { trackId, countryCode = 'DE' } = req.query;
   if (!trackId) return res.status(400).json({ error: 'trackId is required' });
@@ -241,10 +248,50 @@ app.get('/api/tidal/similar-tracks', async (req, res) => {
       `https://openapi.tidal.com/v2/tracks/${encodeURIComponent(trackId)}/relationships/similarTracks?${params}`,
       { Authorization: `Bearer ${token}` }
     );
+    if (json.data && Array.isArray(json.data)) {
+      similarTracksCache[trackId] = json.data.map(t => t.id);
+    }
     res.json(json);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// --- /api/tidal/queue-similar-tracks ---
+// POST /api/tidal/queue-similar-tracks?trackId=xxx&service=tidal
+// Sends cached similar tracks to Volumio's queue via addToQueue
+app.post('/api/tidal/queue-similar-tracks', async (req, res) => {
+  const { trackId, service = 'tidal' } = req.query;
+  if (!trackId) return res.status(400).json({ error: 'trackId is required' });
+  const trackIds = similarTracksCache[trackId];
+  if (!trackIds || trackIds.length === 0) {
+    return res.status(404).json({ error: 'No cached similar tracks for this trackId. Call /api/tidal/similar-tracks first.' });
+  }
+  const errors = [];
+  for (const id of trackIds) {
+    try {
+      await new Promise((resolve, reject) => {
+        const body = JSON.stringify({ service, uri: `tidal://song/${id}` });
+        const reqOpts = {
+          hostname: 'localhost',
+          port: 80,
+          path: '/api/v1/addToQueue',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+        };
+        const r = http.request(reqOpts, (response) => {
+          response.resume();
+          response.on('end', resolve);
+        });
+        r.on('error', reject);
+        r.write(body);
+        r.end();
+      });
+    } catch (e) {
+      errors.push({ id, error: e.message });
+    }
+  }
+  res.json({ queued: trackIds.length - errors.length, total: trackIds.length, errors });
 });
 
 // --- /api/tidal/album-tracks ---
@@ -268,10 +315,50 @@ app.get('/api/tidal/album-tracks', async (req, res) => {
       `https://openapi.tidal.com/v2/albums/${encodeURIComponent(albumId)}/relationships/items?${itemParams}`,
       { Authorization: `Bearer ${token}` }
     );
+    if (json.data && Array.isArray(json.data)) {
+      albumTracksCache[trackId] = json.data.map(t => t.id);
+    }
     res.json(json);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// --- /api/tidal/queue-album-tracks ---
+// POST /api/tidal/queue-album-tracks?trackId=xxx&service=tidal
+// Sends cached album tracks to Volumio's queue via addToQueue
+app.post('/api/tidal/queue-album-tracks', async (req, res) => {
+  const { trackId, service = 'tidal' } = req.query;
+  if (!trackId) return res.status(400).json({ error: 'trackId is required' });
+  const trackIds = albumTracksCache[trackId];
+  if (!trackIds || trackIds.length === 0) {
+    return res.status(404).json({ error: 'No cached album tracks for this trackId. Call /api/tidal/album-tracks first.' });
+  }
+  const errors = [];
+  for (const id of trackIds) {
+    try {
+      await new Promise((resolve, reject) => {
+        const body = JSON.stringify({ service, uri: `tidal://song/${id}` });
+        const reqOpts = {
+          hostname: 'localhost',
+          port: 80,
+          path: '/api/v1/addToQueue',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+        };
+        const r = http.request(reqOpts, (response) => {
+          response.resume();
+          response.on('end', resolve);
+        });
+        r.on('error', reject);
+        r.write(body);
+        r.end();
+      });
+    } catch (e) {
+      errors.push({ id, error: e.message });
+    }
+  }
+  res.json({ queued: trackIds.length - errors.length, total: trackIds.length, errors });
 });
 
 // --- /api/clear-cache ---
