@@ -306,7 +306,7 @@ app.post('/api/tidal/queue-similar-tracks', async (req, res) => {
         const body = JSON.stringify({ service, uri: `tidal://song/${id}` });
         const reqOpts = {
           hostname: 'localhost',
-          port: 80,
+          port: 3000,
           path: '/api/v1/addToQueue',
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
@@ -373,7 +373,7 @@ app.post('/api/tidal/queue-album-tracks', async (req, res) => {
         const body = JSON.stringify({ service, uri: `tidal://song/${id}` });
         const reqOpts = {
           hostname: 'localhost',
-          port: 80,
+          port: 3000,
           path: '/api/v1/addToQueue',
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
