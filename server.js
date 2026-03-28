@@ -269,36 +269,44 @@ app.get('/api/genius/songs', async (req, res) => {
 // --- /api/tidal/similar-tracks ---
 // GET /api/tidal/similar-tracks?trackId=xxx&countryCode=DE
 // Returns the raw Tidal similarTracks relationship response and caches track IDs
+async function fetchSimilarTracks(trackId, countryCode) {
+  const token = await getTidalToken();
+  if (!token) throw new Error('Tidal credentials not configured');
+  const params = new URLSearchParams({ countryCode, include: 'similarTracks' });
+  const json = await httpsGet(
+    `https://openapi.tidal.com/v2/tracks/${encodeURIComponent(trackId)}/relationships/similarTracks?${params}`,
+    { Authorization: `Bearer ${token}` }
+  );
+  if (json.data && Array.isArray(json.data)) {
+    similarTracksCache[trackId] = json.data.map(t => t.id);
+  }
+  return json;
+}
+
 app.get('/api/tidal/similar-tracks', async (req, res) => {
   const { trackId, countryCode = 'DE' } = req.query;
   if (!trackId) return res.status(400).json({ error: 'trackId is required' });
   try {
-    const token = await getTidalToken();
-    if (!token) return res.status(500).json({ error: 'Tidal credentials not configured' });
-    const params = new URLSearchParams({ countryCode, include: 'similarTracks' });
-    const json = await httpsGet(
-      `https://openapi.tidal.com/v2/tracks/${encodeURIComponent(trackId)}/relationships/similarTracks?${params}`,
-      { Authorization: `Bearer ${token}` }
-    );
-    if (json.data && Array.isArray(json.data)) {
-      similarTracksCache[trackId] = json.data.map(t => t.id);
-    }
-    res.json(json);
+    res.json(await fetchSimilarTracks(trackId, countryCode));
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
 // --- /api/tidal/queue-similar-tracks ---
-// POST /api/tidal/queue-similar-tracks?trackId=xxx&service=tidal
-// Sends cached similar tracks to Volumio's queue via addToQueue
+// POST /api/tidal/queue-similar-tracks?trackId=xxx&countryCode=DE&service=tidal
+// Fetches (if needed) and sends similar tracks to Volumio's queue via addToQueue
 app.post('/api/tidal/queue-similar-tracks', async (req, res) => {
-  const { trackId, service = 'tidal' } = req.query;
+  const { trackId, countryCode = 'DE', service = 'tidal' } = req.query;
   if (!trackId) return res.status(400).json({ error: 'trackId is required' });
-  const trackIds = similarTracksCache[trackId];
-  if (!trackIds || trackIds.length === 0) {
-    return res.status(404).json({ error: 'No cached similar tracks for this trackId. Call /api/tidal/similar-tracks first.' });
+  if (!similarTracksCache[trackId] || similarTracksCache[trackId].length === 0) {
+    try {
+      await fetchSimilarTracks(trackId, countryCode);
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
   }
+  const trackIds = similarTracksCache[trackId];
   const errors = [];
   for (const id of trackIds) {
     try {
@@ -329,43 +337,51 @@ app.post('/api/tidal/queue-similar-tracks', async (req, res) => {
 // --- /api/tidal/album-tracks ---
 // GET /api/tidal/album-tracks?trackId=xxx&countryCode=DE
 // Returns the track list for the first album associated with the given track
+async function fetchAlbumTracks(trackId, countryCode) {
+  const token = await getTidalToken();
+  if (!token) throw new Error('Tidal credentials not configured');
+  const albumParams = new URLSearchParams({ countryCode, include: 'albums' });
+  const albumRel = await httpsGet(
+    `https://openapi.tidal.com/v2/tracks/${encodeURIComponent(trackId)}/relationships/albums?${albumParams}`,
+    { Authorization: `Bearer ${token}` }
+  );
+  const albumId = albumRel.data && albumRel.data[0] && albumRel.data[0].id;
+  if (!albumId) throw new Error('No album found for track');
+  const itemParams = new URLSearchParams({ countryCode, include: 'items' });
+  const json = await httpsGet(
+    `https://openapi.tidal.com/v2/albums/${encodeURIComponent(albumId)}/relationships/items?${itemParams}`,
+    { Authorization: `Bearer ${token}` }
+  );
+  if (json.data && Array.isArray(json.data)) {
+    albumTracksCache[trackId] = json.data.map(t => t.id);
+  }
+  return json;
+}
+
 app.get('/api/tidal/album-tracks', async (req, res) => {
   const { trackId, countryCode = 'DE' } = req.query;
   if (!trackId) return res.status(400).json({ error: 'trackId is required' });
   try {
-    const token = await getTidalToken();
-    if (!token) return res.status(500).json({ error: 'Tidal credentials not configured' });
-    const albumParams = new URLSearchParams({ countryCode, include: 'albums' });
-    const albumRel = await httpsGet(
-      `https://openapi.tidal.com/v2/tracks/${encodeURIComponent(trackId)}/relationships/albums?${albumParams}`,
-      { Authorization: `Bearer ${token}` }
-    );
-    const albumId = albumRel.data && albumRel.data[0] && albumRel.data[0].id;
-    if (!albumId) return res.status(404).json({ error: 'No album found for track' });
-    const itemParams = new URLSearchParams({ countryCode, include: 'items' });
-    const json = await httpsGet(
-      `https://openapi.tidal.com/v2/albums/${encodeURIComponent(albumId)}/relationships/items?${itemParams}`,
-      { Authorization: `Bearer ${token}` }
-    );
-    if (json.data && Array.isArray(json.data)) {
-      albumTracksCache[trackId] = json.data.map(t => t.id);
-    }
-    res.json(json);
+    res.json(await fetchAlbumTracks(trackId, countryCode));
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
 // --- /api/tidal/queue-album-tracks ---
-// POST /api/tidal/queue-album-tracks?trackId=xxx&service=tidal
-// Sends cached album tracks to Volumio's queue via addToQueue
+// POST /api/tidal/queue-album-tracks?trackId=xxx&countryCode=DE&service=tidal
+// Fetches (if needed) and sends album tracks to Volumio's queue via addToQueue
 app.post('/api/tidal/queue-album-tracks', async (req, res) => {
-  const { trackId, service = 'tidal' } = req.query;
+  const { trackId, countryCode = 'DE', service = 'tidal' } = req.query;
   if (!trackId) return res.status(400).json({ error: 'trackId is required' });
-  const trackIds = albumTracksCache[trackId];
-  if (!trackIds || trackIds.length === 0) {
-    return res.status(404).json({ error: 'No cached album tracks for this trackId. Call /api/tidal/album-tracks first.' });
+  if (!albumTracksCache[trackId] || albumTracksCache[trackId].length === 0) {
+    try {
+      await fetchAlbumTracks(trackId, countryCode);
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
   }
+  const trackIds = albumTracksCache[trackId];
   const errors = [];
   for (const id of trackIds) {
     try {
